@@ -1,0 +1,26 @@
+[
+    {
+        "pdb": "6L62",
+        "emd": "EMD-0838",
+        "chain": "A",
+        "correlation": 0.9339244816201797
+    },
+    {
+        "pdb": "6L6Z",
+        "emd": "EMD-0840",
+        "chain": "A",
+        "correlation": 0.9009521365852177
+    },
+    {
+        "pdb": "6LGN",
+        "emd": "EMD-0881",
+        "chain": "A",
+        "correlation": 0.8067297453265697
+    },
+    {
+        "pdb": "6LGN",
+        "emd": "EMD-0881",
+        "chain": "B",
+        "correlation": 0.8183333900656121
+    }
+]
