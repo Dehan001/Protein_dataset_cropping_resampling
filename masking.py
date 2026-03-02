@@ -7,15 +7,15 @@ from chimerax.core.commands import run
 from chimerax.map import Volume
 
 # ================= CONFIG =================
-IN_DIR = Path("output")          # contains subfolders {TAG}/
-OUT_BASE = Path("masked_output") # will create {TAG}/ inside
-MASK_RADII = [5, 7, 10]          # Å
+IN_DIR = Path("output")           # contains subfolders {TAG}/
+OUT_BASE = Path("masked_output")  # will create {TAG}/ inside
+MASK_RADII = [5, 7, 10]           # Å
 SKIP_IF_EXISTS = True
 # ==========================================
 
 
 def get_new_volume(session, before_ids):
-    """Return the newly created *Volume* model after a command (ignores #N.1 surfaces)."""
+    """Return the newly created Volume model after a command."""
     after = session.models.list()
     new_models = [m for m in after if id(m) not in before_ids]
     new_vols = [m for m in new_models if isinstance(m, Volume)]
@@ -29,11 +29,8 @@ def find_pairs(in_dir: Path):
       output/{tag}/{tag}_cropped.mrc
     """
     pairs = []
-
-    # iterate each subfolder (tag)
     for entry_dir in sorted([p for p in in_dir.iterdir() if p.is_dir()]):
-        tag = entry_dir.name  # e.g., 6L62_EMD-0838_A
-
+        tag = entry_dir.name
         chain_pdb = entry_dir / f"{tag}_chain.pdb"
         cropped_mrc = entry_dir / f"{tag}_cropped.mrc"
 
@@ -57,8 +54,8 @@ def mask_one(session, tag: str, chain_pdb: Path, cropped_mrc: Path):
     out_dir.mkdir(parents=True, exist_ok=True)
 
     run(session, "close all")
-    run(session, f"open {chain_pdb}")    # #1 structure
-    run(session, f"open {cropped_mrc}")  # #2 volume
+    run(session, f"open {chain_pdb}")     # #1 structure
+    run(session, f"open {cropped_mrc}")   # #2 volume
 
     for r in MASK_RADII:
         out_mask = out_dir / f"{tag}_mask_r{r}.mrc"
@@ -66,18 +63,21 @@ def mask_one(session, tag: str, chain_pdb: Path, cropped_mrc: Path):
             print(f"SKIP exists: {out_mask}")
             continue
 
+        # zone around atoms AND create a NEW masked volume (this is the one we must save)
         before = set(id(m) for m in session.models.list())
-        run(session, "volume copy #2")
+        run(session, f"volume zone #2 nearAtoms #1/{chain_id} range {r} newMap true")
 
-        vol_copy = get_new_volume(session, before)
-        if vol_copy is None:
-            raise RuntimeError("volume copy failed (no new Volume model created)")
+        masked_vol = get_new_volume(session, before)
+        if masked_vol is None:
+            raise RuntimeError("volume zone newMap failed (no new Volume model created)")
 
-        vol_id = vol_copy.id_string  # e.g., "3"
+        masked_id = masked_vol.id_string  # e.g., "3" (without '#')
 
-        run(session, f"volume zone #{vol_id} nearAtoms #1/{chain_id} range {r}")
-        run(session, f"save {out_mask} #{vol_id}")
-        run(session, f"close #{vol_id}")
+        # Save the NEW masked map (not #2)
+        run(session, f"save {out_mask} models #{masked_id}")
+
+        # Close only the generated masked map, keep #1 and #2 for next radius
+        run(session, f"close #{masked_id}")
 
     run(session, "close all")
     print(f"OK: {tag}")

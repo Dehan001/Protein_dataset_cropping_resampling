@@ -54,7 +54,8 @@ def resample_one(session, in_path: Path):
 
     # Resample spacing -> creates a NEW volume model (usually #2)
     before = set(id(m) for m in session.models.list())
-    run(session, f"volume resample #1 spacing {SPACING}")
+    run(session, f"volume resample #1 onGrid #1 spacing {SPACING}")
+    # run(session, f"volume resample #2 onGrid #1") # creates #3
 
     resampled_vol = get_new_volume(session, before)
     if resampled_vol is None:
